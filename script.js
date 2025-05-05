@@ -1,402 +1,405 @@
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Получаем ссылки на основные элементы
-  const editor = document.getElementById('_pk_editor');
+  // Основные элементы редактора
+  const editor = document.getElementById('pk_editor');
   const title = document.querySelector('.pk_title');
   const author = document.querySelector('.pk_author');
-  const tooltip = document.getElementById('_pk_tooltip');
-  const mediaPanel = document.getElementById('_pk_media');
   
+  // Панели инструментов
+  const textSizePanel = document.getElementById('text-size-panel');
+  const textColorPanel = document.getElementById('text-color-panel');
+  const linkPanel = document.getElementById('link-panel');
+  const imagePanel = document.getElementById('image-panel');
+  const videoPanel = document.getElementById('video-panel');
+  
+  // Кнопки форматирования
+  const formattingButtons = document.querySelectorAll('.pk_editor_toolbar [data-command]');
+  const textSizeBtn = document.getElementById('text-size-btn');
+  const textColorBtn = document.getElementById('text-color-btn');
+  const linkBtn = document.getElementById('link-btn');
+  const imageBtn = document.getElementById('image-btn');
+  const videoBtn = document.getElementById('video-btn');
+  
+  // Кнопки загрузки и вставки
+  const insertLinkBtn = document.getElementById('insert-link');
+  const insertImageUrlBtn = document.getElementById('insert-image-url');
+  const insertVideoUrlBtn = document.getElementById('insert-video-url');
+  
+  // Ползунок размера текста
+  const sizeSlider = document.getElementById('size-slider');
+  const sizePreview = document.getElementById('size-preview');
+  
+  // Сохранение и публикация
+  const saveBtn = document.getElementById('save-btn');
+  const publishBtn = document.getElementById('publish-btn');
+  
+  // Переменные для хранения текущего выделения
   let currentSelection = null;
   let currentRange = null;
   
-  // Загружаем сохраненный контент при загрузке страницы
+  // Загружаем сохраненный контент
   loadContent();
   
-  // Отслеживаем выделение текста
-  document.addEventListener('selectionchange', updateSelection);
+  // =======================================================
+  // Основные функции форматирования
+  // =======================================================
   
-  // Обработчики кнопок форматирования
-  document.getElementById('_bold_button').addEventListener('click', () => formatText('bold'));
-  document.getElementById('_italic_button').addEventListener('click', () => formatText('italic'));
-  document.getElementById('_underline_button').addEventListener('click', () => formatText('underline'));
-  document.getElementById('_header_button').addEventListener('click', () => formatText('h1'));
-  document.getElementById('_subheader_button').addEventListener('click', () => formatText('h2'));
-  document.getElementById('_quote_button').addEventListener('click', () => formatText('blockquote'));
-  
-  // Обработчики для работы со ссылками
-  document.getElementById('_link_button').addEventListener('click', showLinkPrompt);
-  document.querySelector('#link_prompt .prompt_submit').addEventListener('click', addLink);
-  
-  // Обработчики для размера и цвета текста
-  document.getElementById('_text_size_button').addEventListener('click', showTextSizePrompt);
-  const sizeSlider = document.querySelector('.size_slider');
-  sizeSlider.addEventListener('input', updateSizePreview);
-  
-  document.getElementById('_text_color_button').addEventListener('click', showTextColorPrompt);
-  const colorButtons = document.querySelectorAll('.color_btn');
-  colorButtons.forEach(btn => {
-    btn.addEventListener('click', () => changeTextColor(btn.dataset.color));
-  });
-  
-  // Обработчики для медиа-контента
-  document.getElementById('_image_button').addEventListener('click', showImagePrompt);
-  document.getElementById('_video_button').addEventListener('click', showVideoPrompt);
-  
-  // Обработчики для переключения вкладок
-  const tabs = document.querySelectorAll('.tab');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', function() {
-      const tabContainer = this.closest('.media_tabs');
-      const tabContents = tabContainer.parentElement.querySelectorAll('.tab_content');
+  // Обработка кнопок форматирования
+  formattingButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const command = this.dataset.command;
       
-      // Удаляем активный класс со всех вкладок и контента
-      tabContainer.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      tabContents.forEach(c => c.classList.remove('active'));
-      
-      // Активируем выбранную вкладку и соответствующий контент
-      this.classList.add('active');
-      const tabId = this.dataset.tab + '_tab';
-      document.getElementById(tabId)?.classList.add('active');
-    });
-  });
-  
-  // Обработчики для загрузки файлов
-  const fileInputs = document.querySelectorAll('.file_input');
-  fileInputs.forEach(input => {
-    input.addEventListener('change', handleFileSelect);
-  });
-  
-  // Обработчики кнопок закрытия
-  const closeButtons = document.querySelectorAll('.close');
-  closeButtons.forEach(btn => {
-    btn.addEventListener('click', function() {
-      this.closest('.prompt').classList.remove('active');
-      hideToolbars();
-    });
-  });
-  
-  // Кнопки сохранения и публикации
-  document.getElementById('_save_button').addEventListener('click', saveContent);
-  document.getElementById('_publish_button').addEventListener('click', publishContent);
-  
-  // Обработчики для добавления медиа по ссылке
-  document.querySelectorAll('.media_submit').forEach((btn, index) => {
-    btn.addEventListener('click', function() {
-      const input = this.previousElementSibling;
-      if (index === 0) { // Изображение
-        addImageFromUrl(input.value);
-      } else { // Видео
-        addVideoFromUrl(input.value);
-      }
-      input.value = '';
-      hideToolbars();
-    });
-  });
-  
-  // Горячие клавиши
-  editor.addEventListener('keydown', handleKeyDown);
-  
-  // Функция обновления выбора текста
-  function updateSelection() {
-    const selection = window.getSelection();
-    if (selection.rangeCount > 0) {
-      currentSelection = selection;
-      currentRange = selection.getRangeAt(0);
-      
-      // Показываем панель инструментов при выделении текста
-      if (!selection.isCollapsed && 
-          (editor.contains(selection.anchorNode) || editor.contains(selection.focusNode))) {
-        const rangeRect = currentRange.getBoundingClientRect();
-        const editorRect = editor.getBoundingClientRect();
-        
-        // Позиционируем панель над выделенным текстом
-        tooltip.style.top = (rangeRect.top - tooltip.offsetHeight - 10) + 'px';
-        tooltip.style.left = (rangeRect.left + (rangeRect.width / 2) - (tooltip.offsetWidth / 2)) + 'px';
-        tooltip.classList.add('active');
-        
-        // Позиционируем панель медиа слева от выделения
-        mediaPanel.style.top = rangeRect.top + 'px';
-        mediaPanel.style.left = (editorRect.left - mediaPanel.offsetWidth - 10) + 'px';
-        mediaPanel.classList.add('active');
+      if (command === 'h1' || command === 'h2' || command === 'blockquote') {
+        document.execCommand('formatBlock', false, `<${command}>`);
       } else {
-        hideToolbars();
+        document.execCommand(command, false);
+      }
+      
+      editor.focus();
+    });
+  });
+  
+  // Функция для сохранения текущего выделения
+  function saveSelection() {
+    if (window.getSelection) {
+      const sel = window.getSelection();
+      if (sel.getRangeAt && sel.rangeCount) {
+        currentSelection = sel;
+        currentRange = sel.getRangeAt(0);
       }
     }
   }
   
-  // Скрыть панели инструментов
-  function hideToolbars() {
-    tooltip.classList.remove('active');
-    mediaPanel.classList.remove('active');
-    document.querySelectorAll('.prompt').forEach(p => p.classList.remove('active'));
-  }
-  
-  // Форматирование текста
-  function formatText(format) {
-    if (!currentSelection) return;
-    
-    // Восстанавливаем выделение
-    restoreSelection();
-    
-    if (format === 'h1' || format === 'h2' || format === 'blockquote') {
-      document.execCommand('formatBlock', false, `<${format}>`);
-    } else {
-      document.execCommand(format, false);
-    }
-    
-    hideToolbars();
-  }
-  
-  // Показать промпт для ссылки
-  function showLinkPrompt() {
-    document.querySelectorAll('.prompt').forEach(p => p.classList.remove('active'));
-    document.getElementById('link_prompt').classList.add('active');
-    document.querySelector('#link_prompt .prompt_input').focus();
-  }
-  
-  // Добавить ссылку
-  function addLink() {
-    const url = document.querySelector('#link_prompt .prompt_input').value.trim();
-    if (url) {
-      restoreSelection();
-      document.execCommand('createLink', false, url);
-    }
-    document.querySelector('#link_prompt .prompt_input').value = '';
-    hideToolbars();
-  }
-  
-  // Показать промпт для размера текста
-  function showTextSizePrompt() {
-    document.querySelectorAll('.prompt').forEach(p => p.classList.remove('active'));
-    document.getElementById('text_size_prompt').classList.add('active');
-    
-    // Если в выделении есть текст с размером, установим ползунок
-    if (currentSelection) {
-      const size = getFontSizeFromSelection();
-      if (size) {
-        document.querySelector('.size_slider').value = size;
-        updateSizePreview();
+  // Функция для восстановления выделения
+  function restoreSelection() {
+    if (currentSelection && currentRange) {
+      if (window.getSelection) {
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(currentRange);
       }
     }
   }
   
-  // Обновить предпросмотр размера текста
-  function updateSizePreview() {
-    const size = document.querySelector('.size_slider').value;
-    document.querySelector('.size_preview').textContent = `${size}px`;
-    document.querySelector('.size_preview').style.fontSize = `${size}px`;
-    
-    // Применяем размер к тексту
-    restoreSelection();
-    changeTextSize(size);
+  // Обработчик для выделения текста
+  editor.addEventListener('mouseup', saveSelection);
+  editor.addEventListener('keyup', saveSelection);
+  
+  // =======================================================
+  // Обработка панелей
+  // =======================================================
+  
+  // Функция для закрытия всех панелей
+  function closeAllPanels() {
+    textSizePanel.classList.remove('active');
+    textColorPanel.classList.remove('active');
+    linkPanel.classList.remove('active');
+    imagePanel.classList.remove('active');
+    videoPanel.classList.remove('active');
   }
   
-  // Изменить размер текста
-  function changeTextSize(size) {
-    if (!currentSelection) return;
+  // Добавляем обработчики для открытия/закрытия панелей
+  textSizeBtn.addEventListener('click', function() {
+    closeAllPanels();
+    textSizePanel.classList.add('active');
+  });
+  
+  textColorBtn.addEventListener('click', function() {
+    closeAllPanels();
+    textColorPanel.classList.add('active');
+  });
+  
+  linkBtn.addEventListener('click', function() {
+    closeAllPanels();
+    linkPanel.classList.add('active');
+    document.getElementById('link-url').focus();
+  });
+  
+  imageBtn.addEventListener('click', function() {
+    closeAllPanels();
+    imagePanel.classList.add('active');
+  });
+  
+  videoBtn.addEventListener('click', function() {
+    closeAllPanels();
+    videoPanel.classList.add('active');
+  });
+  
+  // Обработчики для закрытия панелей
+  document.querySelectorAll('.close-panel').forEach(button => {
+    button.addEventListener('click', closeAllPanels);
+  });
+  
+  // Обработка клика вне панелей для их закрытия
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.pk_panel') && 
+        !e.target.closest('.pk_editor_toolbar')) {
+      closeAllPanels();
+    }
+  });
+  
+  // =======================================================
+  // Обработка вкладок
+  // =======================================================
+  
+  // Переключение вкладок
+  document.querySelectorAll('.tab-btn').forEach(tab => {
+    tab.addEventListener('click', function() {
+      // Находим все вкладки и контент в текущей панели
+      const tabsContainer = this.closest('.tabs');
+      const tabContent = tabsContainer.parentElement.querySelectorAll('.tab-content');
+      
+      // Удаляем активный класс у всех вкладок
+      tabsContainer.querySelectorAll('.tab-btn').forEach(t => {
+        t.classList.remove('active');
+      });
+      
+      // Удаляем активный класс у всего контента
+      tabContent.forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      // Активируем текущую вкладку
+      this.classList.add('active');
+      
+      // Активируем соответствующий контент
+      const targetTab = this.getAttribute('data-tab');
+      document.getElementById(targetTab).classList.add('active');
+    });
+  });
+  
+  // =======================================================
+  // Размер текста
+  // =======================================================
+  
+  // Обновление предпросмотра размера текста
+  sizeSlider.addEventListener('input', function() {
+    const size = this.value;
+    sizePreview.textContent = size + 'px';
+    sizePreview.style.fontSize = size + 'px';
+  });
+  
+  // Применение размера текста при отпускании ползунка
+  sizeSlider.addEventListener('change', function() {
+    const size = this.value;
     
-    // Используем fontSize для смены размера
+    restoreSelection();
+    
+    // Используем fontSize для установки размера
     document.execCommand('fontSize', false, '7');
     
-    // Заменяем размер на точный
+    // Находим все элементы с установленным размером и заменяем на точный размер
     const fontElements = document.getElementsByTagName('font');
     for (let i = 0; i < fontElements.length; i++) {
       if (fontElements[i].size === '7') {
         fontElements[i].removeAttribute('size');
-        fontElements[i].style.fontSize = `${size}px`;
+        fontElements[i].style.fontSize = size + 'px';
       }
     }
-  }
-  
-  // Получить размер шрифта из выделения
-  function getFontSizeFromSelection() {
-    if (!currentSelection) return null;
     
-    const node = currentSelection.anchorNode;
-    if (node.nodeType === 3) { // Текстовый узел
-      const parentStyle = window.getComputedStyle(node.parentNode);
-      const fontSize = parseInt(parentStyle.fontSize);
-      return fontSize;
+    editor.focus();
+    closeAllPanels();
+  });
+  
+  // =======================================================
+  // Цвет текста
+  // =======================================================
+  
+  // Применение цвета текста
+  document.querySelectorAll('.color-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const color = this.getAttribute('data-color');
+      
+      restoreSelection();
+      document.execCommand('foreColor', false, color);
+      
+      editor.focus();
+      closeAllPanels();
+    });
+  });
+  
+  // =======================================================
+  // Ссылки
+  // =======================================================
+  
+  // Добавление ссылки
+  insertLinkBtn.addEventListener('click', function() {
+    const url = document.getElementById('link-url').value.trim();
+    
+    if (url) {
+      restoreSelection();
+      document.execCommand('createLink', false, url);
+      
+      // Если текст не выделен, вставляем URL как текст ссылки
+      if (currentSelection && currentSelection.toString().trim() === '') {
+        const linkText = url.replace(/https?:\/\//i, '');
+        document.execCommand('insertText', false, linkText);
+      }
+      
+      // Очищаем поле ввода
+      document.getElementById('link-url').value = '';
     }
-    return 16; // По умолчанию
-  }
-  
-  // Показать промпт для цвета текста
-  function showTextColorPrompt() {
-    document.querySelectorAll('.prompt').forEach(p => p.classList.remove('active'));
-    document.getElementById('text_color_prompt').classList.add('active');
-  }
-  
-  // Изменить цвет текста
-  function changeTextColor(color) {
-    if (!currentSelection) return;
     
-    restoreSelection();
-    document.execCommand('foreColor', false, color);
-    hideToolbars();
-  }
+    editor.focus();
+    closeAllPanels();
+  });
   
-  // Показать промпт для изображения
-  function showImagePrompt() {
-    document.querySelectorAll('.prompt').forEach(p => p.classList.remove('active'));
-    document.getElementById('image_prompt').classList.add('active');
-    document.querySelector('#url_tab .media_input').focus();
-  }
+  // Обработка нажатия Enter в поле URL
+  document.getElementById('link-url').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      insertLinkBtn.click();
+    }
+  });
   
-  // Показать промпт для видео
-  function showVideoPrompt() {
-    document.querySelectorAll('.prompt').forEach(p => p.classList.remove('active'));
-    document.getElementById('video_prompt').classList.add('active');
-    document.querySelector('#video_url_tab .media_input').focus();
-  }
+  // =======================================================
+  // Изображения
+  // =======================================================
   
-  // Обработка выбора файла
-  function handleFileSelect(event) {
-    const file = event.target.files[0];
+  // Загрузка изображения с компьютера
+  document.getElementById('image-upload').addEventListener('change', function(e) {
+    const file = this.files[0];
     if (!file) return;
     
-    const previewContainer = event.target.nextElementSibling;
-    previewContainer.innerHTML = '';
+    // Создаем предпросмотр
+    const preview = document.getElementById('image-preview');
+    preview.innerHTML = '';
     
-    const isVideo = file.type.startsWith('video/');
-    
-    if (isVideo) {
-      // Предпросмотр видео
-      const video = document.createElement('video');
-      video.controls = true;
-      video.src = URL.createObjectURL(file);
-      previewContainer.appendChild(video);
-      
-      // Кнопка для вставки видео
-      const insertBtn = document.createElement('button');
-      insertBtn.textContent = 'Вставить видео';
-      insertBtn.className = 'media_submit';
-      insertBtn.addEventListener('click', () => {
-        addVideoFromFile(file);
-        hideToolbars();
-        event.target.value = '';
-        previewContainer.innerHTML = '';
-      });
-      previewContainer.appendChild(insertBtn);
-    } else {
-      // Предпросмотр изображения
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      // Создаем изображение для предпросмотра
       const img = document.createElement('img');
-      img.src = URL.createObjectURL(file);
-      previewContainer.appendChild(img);
+      img.src = event.target.result;
+      preview.appendChild(img);
       
-      // Кнопка для вставки изображения
+      // Добавляем кнопку для вставки
       const insertBtn = document.createElement('button');
       insertBtn.textContent = 'Вставить изображение';
-      insertBtn.className = 'media_submit';
-      insertBtn.addEventListener('click', () => {
-        addImageFromFile(file);
-        hideToolbars();
-        event.target.value = '';
-        previewContainer.innerHTML = '';
+      insertBtn.addEventListener('click', function() {
+        insertImageFromFile(event.target.result);
       });
-      previewContainer.appendChild(insertBtn);
-    }
-  }
-  
-  // Добавить изображение из файла
-  function addImageFromFile(file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      restoreSelection();
-      const img = `<img src="${e.target.result}" alt="Загруженное изображение">`;
-      document.execCommand('insertHTML', false, img);
+      preview.appendChild(insertBtn);
     };
+    
     reader.readAsDataURL(file);
+  });
+  
+  // Вставка изображения по URL
+  insertImageUrlBtn.addEventListener('click', function() {
+    const url = document.getElementById('image-url').value.trim();
+    if (url) {
+      insertImageFromUrl(url);
+      document.getElementById('image-url').value = '';
+    }
+  });
+  
+  // Функция для вставки изображения из файла
+  function insertImageFromFile(dataUrl) {
+    restoreSelection();
+    const img = `<img src="${dataUrl}" alt="Изображение">`;
+    document.execCommand('insertHTML', false, img);
+    
+    editor.focus();
+    closeAllPanels();
   }
   
-  // Добавить изображение по URL
-  function addImageFromUrl(url) {
-    if (!url) return;
-    
+  // Функция для вставки изображения по URL
+  function insertImageFromUrl(url) {
     restoreSelection();
     const img = `<img src="${url}" alt="Изображение">`;
     document.execCommand('insertHTML', false, img);
+    
+    editor.focus();
+    closeAllPanels();
   }
   
-  // Добавить видео из файла
-  function addVideoFromFile(file) {
+  // =======================================================
+  // Видео
+  // =======================================================
+  
+  // Загрузка видео с компьютера
+  document.getElementById('video-upload').addEventListener('change', function(e) {
+    const file = this.files[0];
+    if (!file) return;
+    
+    // Создаем предпросмотр
+    const preview = document.getElementById('video-preview');
+    preview.innerHTML = '';
+    
     const reader = new FileReader();
-    reader.onload = function(e) {
-      restoreSelection();
-      const video = `
-        <div class="video-container">
-          <video controls>
-            <source src="${e.target.result}" type="${file.type}">
-            Ваш браузер не поддерживает видео.
-          </video>
-        </div>
-      `;
-      document.execCommand('insertHTML', false, video);
+    reader.onload = function(event) {
+      // Создаем видео для предпросмотра
+      const video = document.createElement('video');
+      video.controls = true;
+      video.src = event.target.result;
+      preview.appendChild(video);
+      
+      // Добавляем кнопку для вставки
+      const insertBtn = document.createElement('button');
+      insertBtn.textContent = 'Вставить видео';
+      insertBtn.addEventListener('click', function() {
+        insertVideoFromFile(event.target.result, file.type);
+      });
+      preview.appendChild(insertBtn);
     };
+    
     reader.readAsDataURL(file);
+  });
+  
+  // Вставка видео по URL
+  insertVideoUrlBtn.addEventListener('click', function() {
+    const url = document.getElementById('video-url').value.trim();
+    if (url) {
+      insertVideoFromUrl(url);
+      document.getElementById('video-url').value = '';
+    }
+  });
+  
+  // Функция для вставки видео из файла
+  function insertVideoFromFile(dataUrl, type) {
+    restoreSelection();
+    const video = `
+      <div class="video-container">
+        <video controls>
+          <source src="${dataUrl}" type="${type}">
+          Ваш браузер не поддерживает видео.
+        </video>
+      </div>
+    `;
+    document.execCommand('insertHTML', false, video);
+    
+    editor.focus();
+    closeAllPanels();
   }
   
-  // Добавить видео по URL
-  function addVideoFromUrl(url) {
-    if (!url) return;
+  // Функция для вставки видео по URL
+  function insertVideoFromUrl(url) {
+    restoreSelection();
     
     let embedUrl = url;
     
-    // Конвертировать YouTube URL в embed URL
+    // Преобразование YouTube URL в embed URL
     if (url.includes('youtube.com/watch?v=')) {
       const videoId = url.split('v=')[1].split('&')[0];
       embedUrl = `https://www.youtube.com/embed/${videoId}`;
     } else if (url.includes('youtu.be/')) {
-      const videoId = url.split('youtu.be/')[1];
+      const videoId = url.split('youtu.be/')[1].split('?')[0];
       embedUrl = `https://www.youtube.com/embed/${videoId}`;
     }
     
-    restoreSelection();
     const iframe = `
       <div class="video-container">
         <iframe src="${embedUrl}" frameborder="0" allowfullscreen></iframe>
       </div>
     `;
     document.execCommand('insertHTML', false, iframe);
+    
+    editor.focus();
+    closeAllPanels();
   }
   
-  // Восстановить выделение
-  function restoreSelection() {
-    if (currentSelection && currentRange) {
-      currentSelection.removeAllRanges();
-      currentSelection.addRange(currentRange);
-    }
-  }
-  
-  // Обработка горячих клавиш
-  function handleKeyDown(e) {
-    // Ctrl+B: Жирный
-    if (e.ctrlKey && e.key === 'b') {
-      e.preventDefault();
-      formatText('bold');
-    }
-    // Ctrl+I: Курсив
-    else if (e.ctrlKey && e.key === 'i') {
-      e.preventDefault();
-      formatText('italic');
-    }
-    // Ctrl+U: Подчеркнутый
-    else if (e.ctrlKey && e.key === 'u') {
-      e.preventDefault();
-      formatText('underline');
-    }
-    // Ctrl+K: Ссылка
-    else if (e.ctrlKey && e.key === 'k') {
-      e.preventDefault();
-      showLinkPrompt();
-    }
-    // Ctrl+S: Сохранить
-    else if (e.ctrlKey && e.key === 's') {
-      e.preventDefault();
-      saveContent();
-    }
-  }
+  // =======================================================
+  // Сохранение и загрузка контента
+  // =======================================================
   
   // Сохранение контента
   function saveContent() {
@@ -409,26 +412,34 @@ document.addEventListener('DOMContentLoaded', function() {
     
     localStorage.setItem('pochitayka-content', JSON.stringify(content));
     
-    // Показать уведомление о сохранении
+    // Обновляем дату последнего сохранения
+    const timeElement = document.querySelector('time');
+    const date = new Date();
+    timeElement.textContent = formatDate(date);
+    timeElement.setAttribute('datetime', date.toISOString());
+    
+    // Показываем уведомление
     showNotification('Сохранено!');
   }
   
-  // Загрузка контента
+  // Загрузка сохраненного контента
   function loadContent() {
     const savedContent = localStorage.getItem('pochitayka-content');
+    
     if (savedContent) {
       try {
         const content = JSON.parse(savedContent);
+        
         title.innerHTML = content.title || '';
         author.innerHTML = content.author || '';
         editor.innerHTML = content.content || '<p><br></p>';
         
-        // Установить время последнего сохранения
+        // Устанавливаем время последнего сохранения
         if (content.lastSaved) {
-          const time = document.querySelector('time');
+          const timeElement = document.querySelector('time');
           const date = new Date(content.lastSaved);
-          time.textContent = formatDate(date);
-          time.setAttribute('datetime', content.lastSaved);
+          timeElement.textContent = formatDate(date);
+          timeElement.setAttribute('datetime', content.lastSaved);
         }
       } catch (e) {
         console.error('Ошибка при загрузке сохраненного контента:', e);
@@ -436,58 +447,89 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Публикация контента
-  function publishContent() {
-    // Здесь можно добавить логику публикации
-    // Пока просто сохраняем и показываем уведомление
+  // Добавляем обработчики для сохранения и публикации
+  saveBtn.addEventListener('click', saveContent);
+  
+  publishBtn.addEventListener('click', function() {
     saveContent();
-    showNotification('Опубликовано!');
+    showNotification('Публикация успешна!');
+  });
+  
+  // Автосохранение каждые 30 секунд
+  setInterval(saveContent, 30000);
+  
+  // =======================================================
+  // Вспомогательные функции
+  // =======================================================
+  
+  // Форматирование даты
+  function formatDate(date) {
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    
+    return `${day}.${month}.${year}, ${hours}:${minutes}`;
   }
   
-  // Показать уведомление
+  // Функция для отображения уведомлений
   function showNotification(message) {
+    // Удаляем существующие уведомления
+    const existingNotifications = document.querySelectorAll('.pk_notification');
+    existingNotifications.forEach(notif => {
+      document.body.removeChild(notif);
+    });
+    
+    // Создаем новое уведомление
     const notification = document.createElement('div');
-    notification.className = 'notification';
+    notification.className = 'pk_notification';
     notification.textContent = message;
-    notification.style.position = 'fixed';
-    notification.style.bottom = '20px';
-    notification.style.right = '20px';
-    notification.style.background = 'var(--primary-color)';
-    notification.style.color = 'white';
-    notification.style.padding = '10px 20px';
-    notification.style.borderRadius = '4px';
-    notification.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-    notification.style.opacity = '0';
-    notification.style.transition = 'opacity 0.3s';
     
     document.body.appendChild(notification);
     
-    // Анимация появления и исчезновения
+    // Анимируем появление
     setTimeout(() => {
-      notification.style.opacity = '1';
+      notification.classList.add('active');
     }, 10);
     
+    // Автоматически скрываем через 3 секунды
     setTimeout(() => {
-      notification.style.opacity = '0';
+      notification.classList.remove('active');
       setTimeout(() => {
         document.body.removeChild(notification);
       }, 300);
     }, 3000);
   }
   
-  // Форматирование даты
-  function formatDate(date) {
-    const months = [
-      'Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня',
-      'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'
-    ];
-    
-    const day = date.getDate();
-    const month = months[date.getMonth()];
-    const year = date.getFullYear();
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    
-    return `${day} ${month} ${year}, ${hours}:${minutes}`;
-  }
+  // Горячие клавиши
+  document.addEventListener('keydown', function(e) {
+    // Ctrl+B: Жирный
+    if (e.ctrlKey && e.key === 'b') {
+      e.preventDefault();
+      document.execCommand('bold', false);
+    } 
+    // Ctrl+I: Курсив
+    else if (e.ctrlKey && e.key === 'i') {
+      e.preventDefault();
+      document.execCommand('italic', false);
+    } 
+    // Ctrl+U: Подчеркнутый
+    else if (e.ctrlKey && e.key === 'u') {
+      e.preventDefault();
+      document.execCommand('underline', false);
+    } 
+    // Ctrl+K: Ссылка
+    else if (e.ctrlKey && e.key === 'k') {
+      e.preventDefault();
+      closeAllPanels();
+      linkPanel.classList.add('active');
+      document.getElementById('link-url').focus();
+    }
+    // Ctrl+S: Сохранить
+    else if (e.ctrlKey && e.key === 's') {
+      e.preventDefault();
+      saveContent();
+    }
+  });
 });

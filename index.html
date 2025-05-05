@@ -11,12 +11,12 @@
     <meta name="HandheldFriendly" content="True" />
     <meta name="robots" content="index, follow" />
     <meta property="og:title" content="Почитай-ка">
-    <meta property="og:description" content="Почитай-ка - минималистичный редактор публикаций с возможностями форматирования, добавления изображений и видео.">
+    <meta property="og:description" content="Почитай-ка - минималистичный редактор для создания красивых публикаций с возможностью форматирования и вставки медиа-контента.">
     <meta property="og:image" content="images/logo.png">
     <meta property="og:site_name" content="Почитай-ка">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="Почитай-ка">
-    <meta name="twitter:description" content="Почитай-ка - минималистичный редактор публикаций с возможностями форматирования, добавления изображений и видео.">
+    <meta name="twitter:description" content="Почитай-ка - минималистичный редактор для создания красивых публикаций с возможностью форматирования и вставки медиа-контента.">
     <meta name="twitter:image" content="images/logo.png">
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <link rel="icon" type="image/png" href="images/favicon.png" sizes="16x16">
@@ -30,129 +30,148 @@
     <div class="pk_page_wrap">
       <div class="pk_page">
         <header class="pk_header">
-          <div class="pk_logo">
-            <a href="/">Почитай-ка</a>
-          </div>
+          <h1 class="pk_logo"><a href="/">Почитай-ка</a></h1>
         </header>
+        
         <main class="pk_article">
-          <header class="pk_article_header" dir="auto">
-            <h1 contenteditable="true" class="pk_title" placeholder="Заголовок"></h1>
+          <header class="pk_article_header">
+            <div class="pk_title" contenteditable="true" placeholder="Заголовок"></div>
             <address>
-              <a rel="author" contenteditable="true" class="pk_author" placeholder="Ваше имя"></a>
+              <span class="pk_author" contenteditable="true" placeholder="Ваше имя"></span>
               <time datetime=""></time>
             </address>
           </header>
-          <article id="_pk_editor" class="pk_article_content" contenteditable="true">
+          
+          <div class="pk_editor_toolbar">
+            <div class="toolbar_group">
+              <button type="button" data-command="bold" title="Жирный (Ctrl+B)">B</button>
+              <button type="button" data-command="italic" title="Курсив (Ctrl+I)">I</button>
+              <button type="button" data-command="underline" title="Подчеркнутый (Ctrl+U)">U</button>
+            </div>
+            <div class="toolbar_group">
+              <button type="button" data-command="h1" title="Заголовок">H1</button>
+              <button type="button" data-command="h2" title="Подзаголовок">H2</button>
+              <button type="button" data-command="blockquote" title="Цитата">❝</button>
+            </div>
+            <div class="toolbar_group">
+              <button type="button" id="text-size-btn" title="Размер текста">Aa</button>
+              <button type="button" id="text-color-btn" title="Цвет текста">🎨</button>
+              <button type="button" id="link-btn" title="Ссылка (Ctrl+K)">🔗</button>
+            </div>
+            <div class="toolbar_group">
+              <button type="button" id="image-btn" title="Изображение">🖼️</button>
+              <button type="button" id="video-btn" title="Видео">🎬</button>
+            </div>
+          </div>
+          
+          <!-- Контент-редактор -->
+          <article id="pk_editor" class="pk_article_content" contenteditable="true">
             <p><br></p>
           </article>
           
-          <div id="_pk_tooltip" class="pk_tooltip">
-            <div class="buttons">
-              <span class="button_group">
-                <button id="_bold_button" title="Жирный (Ctrl+B)">B</button>
-                <button id="_italic_button" title="Курсив (Ctrl+I)">I</button>
-                <button id="_underline_button" title="Подчеркнутый (Ctrl+U)">U</button>
-                <button id="_link_button" title="Ссылка (Ctrl+K)">🔗</button>
-              </span>
-              <span class="button_group">
-                <button id="_header_button" title="Заголовок">H1</button>
-                <button id="_subheader_button" title="Подзаголовок">H2</button>
-                <button id="_quote_button" title="Цитата">❝</button>
-              </span>
-              <span class="button_group">
-                <button id="_text_size_button" title="Размер текста">Aa</button>
-                <button id="_text_color_button" title="Цвет текста">🎨</button>
-              </span>
+          <!-- Панель размера текста -->
+          <div id="text-size-panel" class="pk_panel">
+            <div class="panel_header">
+              <h3>Размер текста</h3>
+              <button type="button" class="close-panel">×</button>
             </div>
-            
-            <!-- Панель для ссылок -->
-            <div id="link_prompt" class="prompt">
-              <span class="close">×</span>
-              <div class="prompt_input_wrap">
-                <input type="url" class="prompt_input" placeholder="https://пример.рф" />
-                <button class="prompt_submit">Добавить</button>
-              </div>
-            </div>
-            
-            <!-- Панель для размера текста -->
-            <div id="text_size_prompt" class="prompt">
-              <span class="close">×</span>
-              <div class="prompt_slider_wrap">
+            <div class="panel_content">
+              <div class="size-slider-container">
                 <span>12px</span>
-                <input type="range" min="12" max="48" value="16" class="size_slider">
+                <input type="range" id="size-slider" min="12" max="48" step="1" value="16">
                 <span>48px</span>
-                <div class="size_preview">16px</div>
               </div>
+              <div id="size-preview">16px</div>
             </div>
-            
-            <!-- Панель для цвета текста -->
-            <div id="text_color_prompt" class="prompt">
-              <span class="close">×</span>
-              <div class="color_palette">
-                <button data-color="inherit" class="color_btn default_color">По умолчанию</button>
-                <button data-color="#000000" class="color_btn" style="background-color: #000000;"></button>
-                <button data-color="#5E5E5E" class="color_btn" style="background-color: #5E5E5E;"></button>
-                <button data-color="#EC4899" class="color_btn" style="background-color: #EC4899;"></button>
-                <button data-color="#BE185D" class="color_btn" style="background-color: #BE185D;"></button>
-                <button data-color="#DC2626" class="color_btn" style="background-color: #DC2626;"></button>
-                <button data-color="#EA580C" class="color_btn" style="background-color: #EA580C;"></button>
-                <button data-color="#65A30D" class="color_btn" style="background-color: #65A30D;"></button>
-                <button data-color="#0891B2" class="color_btn" style="background-color: #0891B2;"></button>
-                <button data-color="#2563EB" class="color_btn" style="background-color: #2563EB;"></button>
-                <button data-color="#7C3AED" class="color_btn" style="background-color: #7C3AED;"></button>
+          </div>
+          
+          <!-- Панель цвета текста -->
+          <div id="text-color-panel" class="pk_panel">
+            <div class="panel_header">
+              <h3>Цвет текста</h3>
+              <button type="button" class="close-panel">×</button>
+            </div>
+            <div class="panel_content">
+              <div class="color-palette">
+                <button type="button" class="color-btn default-color" data-color="inherit">По умолчанию</button>
+                <button type="button" class="color-btn" data-color="#000000" style="background-color: #000000;"></button>
+                <button type="button" class="color-btn" data-color="#333333" style="background-color: #333333;"></button>
+                <button type="button" class="color-btn" data-color="#FF69B4" style="background-color: #FF69B4;"></button>
+                <button type="button" class="color-btn" data-color="#DB7093" style="background-color: #DB7093;"></button>
+                <button type="button" class="color-btn" data-color="#FF1493" style="background-color: #FF1493;"></button>
+                <button type="button" class="color-btn" data-color="#C71585" style="background-color: #C71585;"></button>
+                <button type="button" class="color-btn" data-color="#DA70D6" style="background-color: #DA70D6;"></button>
+                <button type="button" class="color-btn" data-color="#4169E1" style="background-color: #4169E1;"></button>
+                <button type="button" class="color-btn" data-color="#228B22" style="background-color: #228B22;"></button>
+                <button type="button" class="color-btn" data-color="#B22222" style="background-color: #B22222;"></button>
               </div>
             </div>
           </div>
           
-          <div id="_pk_media" class="pk_media">
-            <div class="buttons">
-              <button id="_image_button" title="Добавить изображение">🖼️</button>
-              <button id="_video_button" title="Добавить видео">🎬</button>
+          <!-- Панель ссылок -->
+          <div id="link-panel" class="pk_panel">
+            <div class="panel_header">
+              <h3>Добавить ссылку</h3>
+              <button type="button" class="close-panel">×</button>
             </div>
-            
-            <!-- Панель для изображений -->
-            <div id="image_prompt" class="prompt">
-              <span class="close">×</span>
-              <div class="media_tabs">
-                <button class="tab active" data-tab="url">По ссылке</button>
-                <button class="tab" data-tab="upload">Загрузить</button>
-              </div>
-              <div class="tab_content active" id="url_tab">
-                <input type="url" placeholder="https://пример.рф/изображение.jpg" class="media_input">
-                <button class="media_submit">Добавить</button>
-              </div>
-              <div class="tab_content" id="upload_tab">
-                <input type="file" accept="image/*" class="file_input">
-                <div class="upload_preview"></div>
-              </div>
+            <div class="panel_content">
+              <input type="url" id="link-url" placeholder="https://пример.ру">
+              <button type="button" id="insert-link">Вставить</button>
             </div>
-            
-            <!-- Панель для видео -->
-            <div id="video_prompt" class="prompt">
-              <span class="close">×</span>
-              <div class="media_tabs">
-                <button class="tab active" data-tab="video_url">YouTube или ссылка</button>
-                <button class="tab" data-tab="video_upload">Загрузить</button>
+          </div>
+          
+          <!-- Панель изображений -->
+          <div id="image-panel" class="pk_panel">
+            <div class="panel_header">
+              <h3>Добавить изображение</h3>
+              <button type="button" class="close-panel">×</button>
+            </div>
+            <div class="panel_content">
+              <div class="tabs">
+                <button type="button" class="tab-btn active" data-tab="url-tab">По ссылке</button>
+                <button type="button" class="tab-btn" data-tab="upload-tab">С компьютера</button>
               </div>
-              <div class="tab_content active" id="video_url_tab">
-                <input type="url" placeholder="https://youtube.com/watch?v=..." class="media_input">
-                <button class="media_submit">Добавить</button>
+              <div class="tab-content active" id="url-tab">
+                <input type="url" id="image-url" placeholder="https://пример.ру/изображение.jpg">
+                <button type="button" id="insert-image-url">Вставить</button>
               </div>
-              <div class="tab_content" id="video_upload_tab">
-                <input type="file" accept="video/*" class="file_input">
-                <div class="upload_preview"></div>
+              <div class="tab-content" id="upload-tab">
+                <input type="file" id="image-upload" accept="image/*">
+                <div id="image-preview" class="media-preview"></div>
               </div>
             </div>
           </div>
           
-          <aside class="pk_article_buttons">
-            <button id="_save_button" class="button save_button">Сохранить</button>
-            <button id="_publish_button" class="button publish_button">Опубликовать</button>
-          </aside>
+          <!-- Панель видео -->
+          <div id="video-panel" class="pk_panel">
+            <div class="panel_header">
+              <h3>Добавить видео</h3>
+              <button type="button" class="close-panel">×</button>
+            </div>
+            <div class="panel_content">
+              <div class="tabs">
+                <button type="button" class="tab-btn active" data-tab="video-url-tab">По ссылке</button>
+                <button type="button" class="tab-btn" data-tab="video-upload-tab">С компьютера</button>
+              </div>
+              <div class="tab-content active" id="video-url-tab">
+                <input type="url" id="video-url" placeholder="https://youtube.com/watch?v=...">
+                <button type="button" id="insert-video-url">Вставить</button>
+              </div>
+              <div class="tab-content" id="video-upload-tab">
+                <input type="file" id="video-upload" accept="video/*">
+                <div id="video-preview" class="media-preview"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="pk_controls">
+            <button type="button" id="save-btn" class="pk_button">Сохранить</button>
+            <button type="button" id="publish-btn" class="pk_button primary">Опубликовать</button>
+          </div>
         </main>
         
         <footer class="pk_footer">
-          <p>&copy; 2025 Почитай-ка. Все права защищены.</p>
+          <p>&copy; 2024 Почитай-ка. Все права защищены.</p>
         </footer>
       </div>
     </div>
